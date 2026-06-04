@@ -1,0 +1,22 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dataset (Terlalu besar untuk GitHub)
+dataset/
+
+# Model Checkpoints (Terlalu besar untuk GitHub)
+checkpoints/
+
+# Hasil Output
+results/
+
+# Log / Environment Variables
+*.log
+.env

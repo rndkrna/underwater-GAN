@@ -1,0 +1,8 @@
+gradio>=4.0.0
+numpy
+pillow
+matplotlib
+torch
+torchvision
+scikit-image
+opencv-python
