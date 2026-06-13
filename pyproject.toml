@@ -3,27 +3,16 @@ name = "underwater-gan-web"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "gradio>=4.0.0",
     "numpy",
     "pillow",
     "matplotlib",
-    "torch",
-    "torchvision",
     "scikit-image",
     "opencv-python-headless",
     "fastapi",
     "uvicorn",
-    "python-multipart"
+    "python-multipart",
+    "onnxruntime"
 ]
 
 [tool.vercel]
 entrypoint = "api_server:app"
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
-[tool.uv.sources]
-torch = { index = "pytorch-cpu" }
-torchvision = { index = "pytorch-cpu" }

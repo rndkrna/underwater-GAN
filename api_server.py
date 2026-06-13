@@ -1,5 +1,6 @@
 import matplotlib
 matplotlib.use('Agg')
+from matplotlib.figure import Figure
 import os
 import io
 import base64
@@ -12,7 +13,29 @@ from fastapi.responses import JSONResponse
 # Import model-specific functions and config
 from model_utils import restore_image_pil, load_training_history, cfg
 from metrics import calculate_psnr, calculate_ssim, calculate_uiqm
-from app import generate_histogram_plot
+
+def generate_histogram_plot(img_in, img_out):
+    fig = Figure(figsize=(10, 4))
+    
+    ax1 = fig.add_subplot(121)
+    ax1.set_title("Input RGB Histogram")
+    ax1.set_xlim([0, 256])
+    img_in_arr = np.array(img_in)
+    colors = ('r', 'g', 'b')
+    for i, col in enumerate(colors):
+        hist, bins = np.histogram(img_in_arr[:, :, i], bins=256, range=(0, 256))
+        ax1.plot(bins[:-1], hist, color=col)
+        
+    ax2 = fig.add_subplot(122)
+    ax2.set_title("Restored RGB Histogram")
+    ax2.set_xlim([0, 256])
+    img_out_arr = np.array(img_out)
+    for i, col in enumerate(colors):
+        hist, bins = np.histogram(img_out_arr[:, :, i], bins=256, range=(0, 256))
+        ax2.plot(bins[:-1], hist, color=col)
+        
+    fig.tight_layout()
+    return fig
 
 app = FastAPI(title="Underwater Image Restoration GAN API")
 
@@ -46,7 +69,7 @@ def list_checkpoints():
         return {"checkpoints": []}
     files = [
         f for f in os.listdir(checkpoint_dir)
-        if f.endswith(".pth")
+        if f.endswith(".pth") or f.endswith(".onnx")
     ]
     return {"checkpoints": sorted(files)}
 
@@ -64,10 +87,13 @@ def get_model_info(checkpoint: str = "checkpoints/checkpoint_final.pth"):
             checkpoint_path = os.path.join(base_dir, "checkpoints", checkpoint)
 
     if not os.path.exists(checkpoint_path):
-        # Fallback to standard path if exists
+        # Fallback to standard path or ONNX fallback
         default_path = os.path.join(base_dir, "checkpoints", "checkpoint_final.pth")
+        onnx_fallback = os.path.join(base_dir, "checkpoints", "generator.onnx")
         if os.path.exists(default_path):
             checkpoint_path = default_path
+        elif os.path.exists(onnx_fallback):
+            checkpoint_path = onnx_fallback
         else:
             return {
                 "error": f"Checkpoint path {checkpoint_path} not found.",
@@ -133,6 +159,13 @@ async def restore_image(
                 checkpoint_path = os.path.join(base_dir, checkpoint)
             else:
                 checkpoint_path = os.path.join(base_dir, "checkpoints", checkpoint)
+
+        # Fallback if the resolved checkpoint path doesn't exist
+        if not os.path.exists(checkpoint_path):
+            default_path = os.path.join(base_dir, "checkpoints", "checkpoint_final.pth")
+            onnx_fallback = os.path.join(base_dir, "checkpoints", "generator.onnx")
+            if checkpoint_path == default_path and os.path.exists(onnx_fallback):
+                checkpoint_path = onnx_fallback
 
         # 2. Check for reference image (Ground Truth)
         ref_img = None
