@@ -75,7 +75,7 @@ def list_checkpoints():
         
     # Fallback jika tidak ada checkpoint lokal (seperti di Vercel yang menggunakan gitignore)
     if not files:
-        files.append("generator.onnx")
+        files.append("generator_quant.onnx")
         
     return {"checkpoints": sorted(files)}
 
@@ -95,9 +95,12 @@ def get_model_info(checkpoint: str = "checkpoints/checkpoint_final.pth"):
     if not os.path.exists(checkpoint_path):
         # Fallback to standard path or ONNX fallback
         default_path = os.path.join(base_dir, "checkpoints", "checkpoint_final.pth")
+        onnx_quant_fallback = os.path.join(base_dir, "checkpoints", "generator_quant.onnx")
         onnx_fallback = os.path.join(base_dir, "checkpoints", "generator.onnx")
         if os.path.exists(default_path):
             checkpoint_path = default_path
+        elif os.path.exists(onnx_quant_fallback):
+            checkpoint_path = onnx_quant_fallback
         elif os.path.exists(onnx_fallback):
             checkpoint_path = onnx_fallback
         else:
@@ -169,9 +172,13 @@ async def restore_image(
         # Fallback if the resolved checkpoint path doesn't exist
         if not os.path.exists(checkpoint_path):
             default_path = os.path.join(base_dir, "checkpoints", "checkpoint_final.pth")
+            onnx_quant_fallback = os.path.join(base_dir, "checkpoints", "generator_quant.onnx")
             onnx_fallback = os.path.join(base_dir, "checkpoints", "generator.onnx")
-            if checkpoint_path == default_path and os.path.exists(onnx_fallback):
-                checkpoint_path = onnx_fallback
+            if checkpoint_path == default_path:
+                if os.path.exists(onnx_quant_fallback):
+                    checkpoint_path = onnx_quant_fallback
+                elif os.path.exists(onnx_fallback):
+                    checkpoint_path = onnx_fallback
 
         # 2. Check for reference image (Ground Truth)
         ref_img = None

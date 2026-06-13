@@ -161,10 +161,13 @@ def restore_image_pil(input_pil: Image.Image, checkpoint_path: str):
         if not is_onnx and not has_torch:
             base_no_ext = os.path.splitext(checkpoint_path)[0]
             onnx_counterpart = base_no_ext + ".onnx"
+            default_onnx_quant = os.path.join(os.path.dirname(checkpoint_path), "generator_quant.onnx")
             default_onnx = os.path.join(os.path.dirname(checkpoint_path), "generator.onnx")
             
             if os.path.exists(onnx_counterpart):
                 actual_path = onnx_counterpart
+            elif os.path.exists(default_onnx_quant):
+                actual_path = default_onnx_quant
             elif os.path.exists(default_onnx):
                 actual_path = default_onnx
             else:
