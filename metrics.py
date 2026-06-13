@@ -1,8 +1,20 @@
 import numpy as np
 from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
-import cv2
+from skimage.filters import sobel
+from PIL import Image
 import math
+
+def _resize_to_match(img_to_resize, target_img):
+    """
+    Resize img_to_resize to match target_img size using PIL.
+    Eliminates dependency on cv2.resize.
+    """
+    target_h, target_w = target_img.shape[:2]
+    pil_img = Image.fromarray(img_to_resize)
+    # PIL resize takes (width, height)
+    pil_resized = pil_img.resize((target_w, target_h), Image.Resampling.BILINEAR)
+    return np.array(pil_resized)
 
 def calculate_psnr(img1, img2):
     """
@@ -10,8 +22,7 @@ def calculate_psnr(img1, img2):
     img1 and img2 are numpy arrays (RGB).
     """
     if img1.shape != img2.shape:
-        # Resize img2 to match img1 if they differ
-        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        img2 = _resize_to_match(img2, img1)
     return psnr(img1, img2, data_range=255)
 
 def calculate_ssim(img1, img2):
@@ -20,7 +31,7 @@ def calculate_ssim(img1, img2):
     img1 and img2 are numpy arrays (RGB).
     """
     if img1.shape != img2.shape:
-        img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+        img2 = _resize_to_match(img2, img1)
     return ssim(img1, img2, data_range=255, channel_axis=-1)
 
 def uicm(img):
@@ -49,14 +60,12 @@ def uicm(img):
     return uicm_val
 
 def uism(img):
-    # Sobel operator for sharpness
+    # Sobel operator for sharpness using skimage.filters.sobel instead of cv2.Sobel
     h, w, c = img.shape
     uism_val = 0.0
     for i in range(c):
         channel = img[:,:,i]
-        sobelx = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=3)
-        sobely = cv2.Sobel(channel, cv2.CV_64F, 0, 1, ksize=3)
-        edge = np.sqrt(sobelx**2 + sobely**2)
+        edge = sobel(channel)
         
         # Block processing (e.g. 10x10)
         blocks = []
@@ -66,10 +75,7 @@ def uism(img):
                 block = edge[y:y+bsize, x:x+bsize]
                 blocks.append(np.mean(block))
                 
-        # EME (Enhancement Measure Evaluation) calculation approximation
-        # we simplify to the average edge intensity as a basic measure of sharpness
-        # The exact UISM uses EME on blocks: EME = (2/(k1*k2)) * sum(log(Imax/Imin))
-        # Here we use a simpler approximation if Imax/Imin is too complex:
+        # EME calculation approximation
         uism_val += np.mean(blocks)
         
     return uism_val / c

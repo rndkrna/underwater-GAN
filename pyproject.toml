@@ -7,7 +7,6 @@ dependencies = [
     "pillow",
     "matplotlib",
     "scikit-image",
-    "opencv-python-headless",
     "fastapi",
     "uvicorn",
     "python-multipart",

@@ -18,8 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import "./App.css";
-
-const API_BASE = "http://127.0.0.1:8080";
+const API_BASE = "";
 
 // --- CUSTOM SVG LINE CHART COMPONENT ---
 // Renders high-fidelity, interactive, custom SVG line graphs with area gradients and hover tooltips.
