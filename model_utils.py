@@ -171,24 +171,33 @@ def restore_image_pil(input_pil: Image.Image, checkpoint_path: str):
             elif os.path.exists(default_onnx):
                 actual_path = default_onnx
             else:
-                # Coba download dari environment variable MODEL_URL jika ada
+                # Coba download dari environment variable MODEL_URL, atau gunakan link GitHub Raw
                 model_url = os.environ.get("MODEL_URL")
+                if not model_url:
+                    model_url = "https://raw.githubusercontent.com/rndkrna/underwater-GAN/main/checkpoints/generator_quant.onnx"
+                    
                 if model_url:
                     temp_dir = tempfile.gettempdir()
-                    downloaded_path = os.path.join(temp_dir, "generator.onnx")
+                    downloaded_path = os.path.join(temp_dir, "generator_quant.onnx")
                     if not os.path.exists(downloaded_path):
                         print(f"Downloading model from {model_url} to {downloaded_path}...")
-                        urllib.request.urlretrieve(model_url, downloaded_path)
+                        try:
+                            urllib.request.urlretrieve(model_url, downloaded_path)
+                        except Exception as e:
+                            raise RuntimeError(f"Gagal mengunduh model dari {model_url}. Error: {e}")
                     actual_path = downloaded_path
                 else:
                     raise ImportError(
                         "PyTorch is not available, and no local or remote ONNX model was found. "
-                        f"Expected ONNX model at: {onnx_counterpart} or {default_onnx}"
+                        f"Expected ONNX model at: {onnx_counterpart} or {default_onnx_quant}"
                     )
 
         # Download model dari MODEL_URL jika file onnx tidak ada secara lokal
         elif is_onnx and not os.path.exists(checkpoint_path):
             model_url = os.environ.get("MODEL_URL")
+            if not model_url:
+                model_url = "https://raw.githubusercontent.com/rndkrna/underwater-GAN/main/checkpoints/generator_quant.onnx"
+                
             if model_url:
                 temp_dir = tempfile.gettempdir()
                 downloaded_path = os.path.join(temp_dir, os.path.basename(checkpoint_path))
