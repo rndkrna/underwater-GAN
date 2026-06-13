@@ -1,0 +1,71 @@
+:root {
+  /* Color Palette - Deep Ocean Theme */
+  --bg-main: #060913;
+  --bg-card: rgba(13, 20, 38, 0.65);
+  --bg-card-hover: rgba(20, 30, 58, 0.8);
+  --bg-sidebar: #090e1d;
+  
+  --primary: #00f0ff;       /* Electric cyan */
+  --primary-hover: #00d2e0;
+  --primary-glow: rgba(0, 240, 255, 0.3);
+  
+  --secondary: #10b981;     /* Emerald green */
+  --secondary-glow: rgba(16, 185, 129, 0.25);
+  
+  --accent: #f59e0b;        /* Warm amber */
+  --accent-glow: rgba(245, 158, 11, 0.2);
+  
+  --text-primary: #f8fafc;  /* Ice white */
+  --text-secondary: #94a3b8;/* Slate gray */
+  --text-muted: #64748b;    /* Dark slate */
+  
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(0, 240, 255, 0.4);
+  
+  --font-sans: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(13, 58, 93, 0.2) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(5, 78, 107, 0.15) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1b263b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2b3a53;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

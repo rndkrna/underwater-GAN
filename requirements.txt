@@ -6,3 +6,6 @@ torch
 torchvision
 scikit-image
 opencv-python
+fastapi
+uvicorn
+python-multipart

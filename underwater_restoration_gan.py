@@ -105,15 +105,17 @@ class UNetUp(nn.Module):
     def __init__(self, in_channels, out_channels, dropout=0.0):
         super().__init__()
         layers = [
-            nn.ConvTranspose2d(in_channels, out_channels, 4, stride=2, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
             nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels, out_channels, 3, stride=1, padding=1, bias=False),
+            nn.InstanceNorm2d(out_channels),
         ]
         if dropout:
             layers.append(nn.Dropout(dropout))
         self.model = nn.Sequential(*layers)
 
     def forward(self, x, skip):
+        import torch.nn.functional as F
+        x = F.interpolate(x, scale_factor=2, mode='nearest')
         x = self.model(x)
         # Skip connection: concatenate feature maps dari encoder
         x = torch.cat((x, skip), dim=1)
@@ -159,7 +161,8 @@ class Generator(nn.Module):
 
         # ── Output Layer ────────────────────────────────────────────────────
         self.final = nn.Sequential(
-            nn.ConvTranspose2d(features * 2, out_channels, 4, stride=2, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(features * 2, out_channels, 3, stride=1, padding=1),
             nn.Tanh()  # Output range [-1, 1]
         )
 
@@ -183,7 +186,9 @@ class Generator(nn.Module):
         u6 = self.up6(u5, d2)
         u7 = self.up7(u6, d1)
 
-        return self.final(u7)
+        import torch.nn.functional as F
+        out = F.interpolate(u7, scale_factor=2, mode='nearest')
+        return self.final(out)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
