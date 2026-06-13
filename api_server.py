@@ -65,12 +65,18 @@ def fig_to_base64(fig) -> str:
 def list_checkpoints():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     checkpoint_dir = os.path.join(base_dir, "checkpoints")
-    if not os.path.exists(checkpoint_dir):
-        return {"checkpoints": []}
-    files = [
-        f for f in os.listdir(checkpoint_dir)
-        if f.endswith(".pth") or f.endswith(".onnx")
-    ]
+    
+    files = []
+    if os.path.exists(checkpoint_dir):
+        files = [
+            f for f in os.listdir(checkpoint_dir)
+            if f.endswith(".pth") or f.endswith(".onnx")
+        ]
+        
+    # Fallback jika tidak ada checkpoint lokal (seperti di Vercel yang menggunakan gitignore)
+    if not files:
+        files.append("generator.onnx")
+        
     return {"checkpoints": sorted(files)}
 
 @app.get("/api/model-info")
