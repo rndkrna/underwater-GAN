@@ -1,7 +1,6 @@
 numpy
 pillow
 matplotlib
-scikit-image
 fastapi
 uvicorn
 python-multipart

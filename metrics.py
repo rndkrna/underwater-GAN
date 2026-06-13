@@ -1,7 +1,4 @@
 import numpy as np
-from skimage.metrics import peak_signal_noise_ratio as psnr
-from skimage.metrics import structural_similarity as ssim
-from skimage.filters import sobel
 from PIL import Image
 import math
 
@@ -23,16 +20,46 @@ def calculate_psnr(img1, img2):
     """
     if img1.shape != img2.shape:
         img2 = _resize_to_match(img2, img1)
-    return psnr(img1, img2, data_range=255)
+    mse = np.mean((img1.astype(np.float64) - img2.astype(np.float64)) ** 2)
+    if mse == 0:
+        return float('inf')
+    return 20 * np.log10(255.0 / np.sqrt(mse))
 
 def calculate_ssim(img1, img2):
     """
-    Calculate SSIM (Structural Similarity Index).
+    Calculate SSIM (Structural Similarity Index) using pure NumPy.
     img1 and img2 are numpy arrays (RGB).
     """
     if img1.shape != img2.shape:
         img2 = _resize_to_match(img2, img1)
-    return ssim(img1, img2, data_range=255, channel_axis=-1)
+        
+    img1 = img1.astype(np.float64)
+    img2 = img2.astype(np.float64)
+    
+    K1 = 0.01
+    K2 = 0.03
+    L = 255.0
+    C1 = (K1 * L) ** 2
+    C2 = (K2 * L) ** 2
+    
+    channels_ssim = []
+    for c in range(img1.shape[2]):
+        x = img1[:, :, c]
+        y = img2[:, :, c]
+        
+        mu_x = x.mean()
+        mu_y = y.mean()
+        
+        sigma_x2 = x.var()
+        sigma_y2 = y.var()
+        sigma_xy = np.mean((x - mu_x) * (y - mu_y))
+        
+        numerator = (2 * mu_x * mu_y + C1) * (2 * sigma_xy + C2)
+        denominator = (mu_x**2 + mu_y**2 + C1) * (sigma_x2 + sigma_y2 + C2)
+        
+        channels_ssim.append(numerator / denominator)
+        
+    return np.mean(channels_ssim)
 
 def uicm(img):
     b, r, g = img[:,:,0], img[:,:,1], img[:,:,2]
@@ -60,12 +87,13 @@ def uicm(img):
     return uicm_val
 
 def uism(img):
-    # Sobel operator for sharpness using skimage.filters.sobel instead of cv2.Sobel
+    # Sharpness measure using NumPy gradient magnitude instead of OpenCV/Skimage Sobel
     h, w, c = img.shape
     uism_val = 0.0
     for i in range(c):
         channel = img[:,:,i]
-        edge = sobel(channel)
+        gy, gx = np.gradient(channel.astype(np.float64))
+        edge = np.sqrt(gx**2 + gy**2)
         
         # Block processing (e.g. 10x10)
         blocks = []
@@ -75,7 +103,6 @@ def uism(img):
                 block = edge[y:y+bsize, x:x+bsize]
                 blocks.append(np.mean(block))
                 
-        # EME calculation approximation
         uism_val += np.mean(blocks)
         
     return uism_val / c
