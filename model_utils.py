@@ -74,30 +74,61 @@ def restore_image_onnx(input_pil: Image.Image, onnx_model_path: str):
     """
     import onnxruntime as ort
 
-    # Preprocess
-    img_resized = input_pil.resize((cfg.IMG_SIZE, cfg.IMG_SIZE), Image.Resampling.BILINEAR)
-    img_arr = np.array(img_resized).astype(np.float32) / 255.0
-    img_arr = (img_arr - 0.5) / 0.5
-    img_arr = np.transpose(img_arr, (2, 0, 1))  # HWC to CHW
-    img_arr = np.expand_dims(img_arr, axis=0)   # [1, 3, 256, 256]
+    # Cek ukuran file model untuk membantu debugging link MODEL_URL
+    if os.path.exists(onnx_model_path):
+        size_mb = os.path.getsize(onnx_model_path) / 1024 / 1024
+        if size_mb < 5.0:
+            # Jika file < 5 MB, kemungkinan besar itu adalah file HTML preview (misal dari Google Drive)
+            try:
+                with open(onnx_model_path, 'r', errors='ignore') as f:
+                    head = f.read(500)
+                    if "<html" in head.lower() or "<!doctype html" in head.lower():
+                        raise ValueError(
+                            f"File model yang terunduh dari MODEL_URL terdeteksi sebagai halaman HTML web (bukan file biner model). "
+                            "Ini biasanya terjadi karena Anda menggunakan link sharing biasa dari Google Drive/Dropbox. "
+                            "Pastikan Anda menggunakan DIRECT DOWNLOAD LINK (Link Unduhan Langsung)."
+                        )
+            except Exception as e:
+                if isinstance(e, ValueError):
+                    raise e
+            raise ValueError(
+                f"Ukuran file model di {onnx_model_path} hanya {size_mb:.2f} MB. "
+                "Ukuran ini terlalu kecil untuk model generator.onnx (harusnya sekitar 149 MB). "
+                "Silakan periksa kembali link di environment variable MODEL_URL Anda."
+            )
 
-    # Run inference
-    session = ort.InferenceSession(onnx_model_path)
-    inputs = {session.get_inputs()[0].name: img_arr}
-    outputs = session.run(None, inputs)
-    output_arr = outputs[0][0]  # [3, 256, 256]
+    try:
+        # Preprocess
+        img_resized = input_pil.resize((cfg.IMG_SIZE, cfg.IMG_SIZE), Image.Resampling.BILINEAR)
+        img_arr = np.array(img_resized).astype(np.float32) / 255.0
+        img_arr = (img_arr - 0.5) / 0.5
+        img_arr = np.transpose(img_arr, (2, 0, 1))  # HWC to CHW
+        img_arr = np.expand_dims(img_arr, axis=0)   # [1, 3, 256, 256]
 
-    # Postprocess
-    output_arr = (output_arr + 1.0) / 2.0 * 255.0
-    output_arr = np.clip(output_arr, 0, 255).astype(np.uint8)
-    output_arr = np.transpose(output_arr, (1, 2, 0))  # CHW to HWC
+        # Run inference
+        session = ort.InferenceSession(onnx_model_path)
+        inputs = {session.get_inputs()[0].name: img_arr}
+        outputs = session.run(None, inputs)
+        output_arr = outputs[0][0]  # [3, 256, 256]
 
-    restored_pil = Image.fromarray(output_arr)
+        # Postprocess
+        output_arr = (output_arr + 1.0) / 2.0 * 255.0
+        output_arr = np.clip(output_arr, 0, 255).astype(np.uint8)
+        output_arr = np.transpose(output_arr, (1, 2, 0))  # CHW to HWC
 
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-    tmp.close()
-    restored_pil.save(tmp.name)
-    return restored_pil, tmp.name
+        restored_pil = Image.fromarray(output_arr)
+
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        tmp.close()
+        restored_pil.save(tmp.name)
+        return restored_pil, tmp.name
+    except Exception as e:
+        if isinstance(e, ValueError):
+            raise e
+        raise RuntimeError(
+            f"Gagal memuat atau menjalankan model ONNX dari {onnx_model_path}. "
+            f"Detail error: {str(e)}. Pastikan file model ONNX valid."
+        )
 
 def restore_image_pil(input_pil: Image.Image, checkpoint_path: str):
     """
