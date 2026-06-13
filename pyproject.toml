@@ -1,2 +1,20 @@
+[project]
+name = "underwater-gan-web"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "gradio>=4.0.0",
+    "numpy",
+    "pillow",
+    "matplotlib",
+    "torch",
+    "torchvision",
+    "scikit-image",
+    "opencv-python",
+    "fastapi",
+    "uvicorn",
+    "python-multipart"
+]
+
 [tool.vercel]
 entrypoint = "api_server:app"
