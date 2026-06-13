@@ -1,6 +1,4 @@
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib.figure import Figure
+from PIL import Image, ImageDraw
 import os
 import io
 import base64
@@ -15,27 +13,42 @@ from model_utils import restore_image_pil, load_training_history, cfg
 from metrics import calculate_psnr, calculate_ssim, calculate_uiqm
 
 def generate_histogram_plot(img_in, img_out):
-    fig = Figure(figsize=(10, 4))
+    width, height = 800, 300
+    bg_color = (24, 24, 27)  # Dark theme background
+    out_img = Image.new('RGB', (width, height), color=bg_color)
+    draw = ImageDraw.Draw(out_img)
     
-    ax1 = fig.add_subplot(121)
-    ax1.set_title("Input RGB Histogram")
-    ax1.set_xlim([0, 256])
-    img_in_arr = np.array(img_in)
-    colors = ('r', 'g', 'b')
-    for i, col in enumerate(colors):
-        hist, bins = np.histogram(img_in_arr[:, :, i], bins=256, range=(0, 256))
-        ax1.plot(bins[:-1], hist, color=col)
+    def draw_hist(image_obj, x_offset):
+        arr = np.array(image_obj)
+        colors = [(239, 68, 68), (34, 197, 94), (59, 130, 246)] # Red, Green, Blue
         
-    ax2 = fig.add_subplot(122)
-    ax2.set_title("Restored RGB Histogram")
-    ax2.set_xlim([0, 256])
-    img_out_arr = np.array(img_out)
-    for i, col in enumerate(colors):
-        hist, bins = np.histogram(img_out_arr[:, :, i], bins=256, range=(0, 256))
-        ax2.plot(bins[:-1], hist, color=col)
+        # Calculate histograms
+        hists = []
+        max_val = 1
+        for i in range(3):
+            hist, _ = np.histogram(arr[:,:,i], bins=256, range=(0, 256))
+            hists.append(hist)
+            if np.max(hist) > max_val:
+                max_val = np.max(hist)
+                
+        # Draw axes
+        graph_w = 340
+        graph_h = 240
+        x0 = x_offset + 30
+        y0 = height - 30
         
-    fig.tight_layout()
-    return fig
+        # Draw lines
+        for i, hist in enumerate(hists):
+            points = []
+            for x, y in enumerate(hist):
+                px = x0 + int((x/256)*graph_w)
+                py = y0 - int((y/max_val)*graph_h)
+                points.append((px, py))
+            draw.line(points, fill=colors[i], width=2)
+            
+    draw_hist(img_in, 0)
+    draw_hist(img_out, 400)
+    return out_img
 
 app = FastAPI(title="Underwater Image Restoration GAN API")
 
@@ -54,12 +67,7 @@ def pil_to_base64(img: Image.Image, format="PNG") -> str:
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("utf-8")
 
-def fig_to_base64(fig) -> str:
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight")
-    buf.seek(0)
-    img_str = base64.b64encode(buf.read()).decode("utf-8")
-    return img_str
+
 
 @app.get("/api/checkpoints")
 def list_checkpoints():
@@ -212,11 +220,9 @@ async def restore_image(
         # 3. Perform restoration
         restored_pil, out_path = restore_image_pil(input_img, checkpoint_path)
         
-        # 4. Generate histogram plot
-        hist_fig = generate_histogram_plot(input_img, restored_pil)
-        hist_base64 = fig_to_base64(hist_fig)
-        import matplotlib.pyplot as plt
-        plt.close(hist_fig)  # Clean up matplotlib memory
+        # 4. Generate histogram plot using PIL
+        hist_img = generate_histogram_plot(input_img, restored_pil)
+        hist_base64 = pil_to_base64(hist_img)
 
         # 5. Compute metrics
         in_arr = np.array(input_img.convert("RGB"))

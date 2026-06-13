@@ -1,6 +1,5 @@
 numpy
 pillow
-matplotlib
 fastapi
 uvicorn
 python-multipart
