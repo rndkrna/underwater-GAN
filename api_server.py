@@ -269,10 +269,10 @@ async def restore_image(
             "restored_image": f"data:image/png;base64,{restored_base64}",
             "reference_image": f"data:image/png;base64,{ref_base64}" if ref_base64 else None
         })
-
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api_server:app", host="127.0.0.1", port=8080, reload=False)

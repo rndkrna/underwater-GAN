@@ -22,5 +22,10 @@
       "src": "/(.*)",
       "dest": "frontend/$1"
     }
-  ]
+  ],
+  "functions": {
+    "api_server.py": {
+      "maxDuration": 60
+    }
+  }
 }
