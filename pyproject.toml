@@ -10,7 +10,7 @@ dependencies = [
     "torch",
     "torchvision",
     "scikit-image",
-    "opencv-python",
+    "opencv-python-headless",
     "fastapi",
     "uvicorn",
     "python-multipart"
@@ -18,3 +18,12 @@ dependencies = [
 
 [tool.vercel]
 entrypoint = "api_server:app"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }

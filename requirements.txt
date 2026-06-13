@@ -5,7 +5,7 @@ matplotlib
 torch
 torchvision
 scikit-image
-opencv-python
+opencv-python-headless
 fastapi
 uvicorn
 python-multipart
